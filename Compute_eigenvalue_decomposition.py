@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[13]:
+# In[84]:
 
 
 import hail as hl
@@ -16,7 +16,7 @@ import numpy as np
 hl.plot.output_notebook()
 
 
-# In[14]:
+# In[85]:
 
 
 #Useful command to specify nuimber of partitions:
@@ -25,15 +25,15 @@ def read_with_partitions(path, n_parts):
      return hl.read_matrix_table(path, _intervals=mt._calculate_new_partitions(n_parts))
 
 
-# In[15]:
+# In[86]:
 
 
 # Set parameters
-pct = 1
+pct = 20
 print(str(pct)+"pct")
 
 
-# In[16]:
+# In[87]:
 
 
 #Specify file names and locations:
@@ -53,7 +53,7 @@ covariates_file = "gs://ukb31063/ukb31063.neale_gwas_covariates.both_sexes.tsv.b
 pcvar_file = "gs://nbaya/sex_linreg/ukb31063.*_phenotypes.both_sexes.reg1.tsv.bgz"
 
 
-# In[17]:
+# In[88]:
 
 
 # Define phenotype and assessment centre classification:
@@ -61,7 +61,7 @@ withdrawn = hl.read_table(withdrawn_file)
 gwassamples = hl.read_table(gwassamples_file)
 
 
-# In[18]:
+# In[89]:
 
 
 # Import table of SNPs used in PCA conducted by the UKB:
@@ -71,7 +71,7 @@ snpqc = snpqc.annotate(locus=hl.locus(hl.str(snpqc.chromosome), snpqc.position, 
 snpqc = snpqc.key_by(snpqc.locus)
 
 
-# In[19]:
+# In[90]:
 
 
 # Read ukbb genotype MatrixTable and filter
@@ -89,7 +89,7 @@ ukbb = ukbb.filter_rows( ukbb.variant_qc.p_value_hwe < 0.0000000001 , keep=False
 ukbb.count()
 
 
-# In[ ]:
+# In[91]:
 
 
 # Save Metadata
@@ -107,7 +107,7 @@ ukbb.write(ukbQC_file, overwrite=True)
 ukbb.count()
 
 
-# In[22]:
+# In[92]:
 
 
 #Read in UKB and with specified number of partitions:
@@ -115,13 +115,15 @@ ukbb = read_with_partitions(ukbQC_file, n_parts=500)
 ukbb.count()
 
 
-# In[ ]:
+# In[93]:
 
 
-##### Something here about filtering SNPs #####
+# Filter SNPs to UKBB PCA SNPs
+ukbb = ukbb.filter_rows(hl.is_defined(snpqc[ukbb.locus]))
+ukbb.count()
 
 
-# In[23]:
+# In[94]:
 
 
 # Write the MTs of UKB and 1KG for PCA to file:
@@ -130,7 +132,7 @@ ukbb.write(ukbPCA_file, overwrite=True)
 print(ukbPCA_file)
 
 
-# In[25]:
+# In[95]:
 
 
 grm = hl.genetic_relatedness_matrix(ukbb.GT)
@@ -138,13 +140,13 @@ grm_file = "gs://ukb-gt/"+str(pct)+"pct/grm_"+str(ukbb.count()[0])+"_x_"+str(ukb
 grm.write(grm_file, overwrite=True)
 
 
-# In[26]:
+# In[81]:
 
 
 grm_np = grm.to_numpy()
 
 
-# In[29]:
+# In[82]:
 
 
 nsnps = ukbb.count()[0]
@@ -154,7 +156,7 @@ np.save("/tmp/eigenvals_"+str(nsnps)+"_x_"+str(nindv)+"_meta"+str(imeta)+".npy",
 hl.hadoop_copy("file:///tmp/eigenvals_"+str(nsnps)+"_x_"+str(nindv)+"_meta"+str(imeta)+".npy", "gs://ukb-gt/"+str(pct)+"pct/eigenvals_"+str(nsnps)+"_x_"+str(nindv)+"_meta"+str(imeta)+".npy")
 
 
-# In[32]:
+# In[83]:
 
 
 import matplotlib.pyplot as plt
@@ -179,4 +181,10 @@ plt.legend()
 plt.savefig('/tmp/eigenval_dist_'+str(nindv)+'_x_'+str(nsnps)+'_meta'+str(imeta)+'.pdf')
 hl.hadoop_copy('file:///tmp/eigenval_dist_'+str(nindv)+'_x_'+str(nsnps)+'_meta'+str(imeta)+'.pdf', 'gs://ukb-gt/'+str(pct)+'pct/eigenval_dist_'+str(nindv)+'_x_'+str(nsnps)+'_meta'+str(imeta)+'.pdf')
 plt.show()
+
+
+# In[ ]:
+
+
+
 
