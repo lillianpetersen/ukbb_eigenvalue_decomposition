@@ -16,9 +16,9 @@ import pandas as pd
 import time
 
 # Set parameters
-pct = 20
-nsnps = 142909
-nindv = 72174
+pct = 10
+nsnps = 144205
+nindv = 35946
 print('\n'+str(pct)+'pct: '+str(nsnps)+' snps, '+str(nindv)+' indv\n')
     
 imeta = 0
