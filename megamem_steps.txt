@@ -1,0 +1,47 @@
+﻿### This script lays out the steps to create a megamem machine on the google cloud and run
+### the python script 'megamem_compute_pcas.py'. Works as of January 2021.
+
+# create megamem
+gcloud compute instances create lkp-megamem --machine-type m1-ultramem-160
+
+# copy code and java files
+gcloud compute scp megamem_compute_pcas.py lkp-megamem:.
+gcloud compute scp jre-8u271-linux-x64.tar.gz lkp-megamem:.
+
+# ssh
+gcloud compute ssh lkp-megamem
+
+# install packages
+sudo apt-get update
+sudo apt-get install python3.6
+sudo apt-get install python3-pip
+pip3 install -U hail
+pip3 install numpy scipy matplotlib ipython pandas
+export PATH=$PATH:/home/lilllianpetersen/.local/bin
+
+# get correct java version (same as coppied above)
+mkdir software/java/ -p
+mv jre-8u271-linux-x64.tar.gz software/java/
+cd software/java/
+tar zxvf jre-8u271-linux-x64.tar.gz
+cd ~
+
+# make some settings
+gcloud auth application-default login
+curl --show-error --silent --location https://broad.io/install-gcs-connector | python3
+
+# open bashrc, add hte pyspark line, and run the bashrc
+vi .bashrc
+PYSPARK_SUBMIT_ARGS="--driver-memory 3500g --executor-memory 3500g pyspark-shell" python3 megamem_compute_pcas.py
+export JAVA_HOME=~/software/java/jre1.8.0_271
+export PATH=$JAVA_HOME/bin:$PATH
+source ~/.bashrc 
+
+# resize memory
+gcloud compute disks resize lkp-megamem --size 1800
+sudo apt -y install cloud-guest-utils
+sudo growpart /dev/sda 1
+sudo resize2fs /dev/sda1
+
+# run the code
+python3 megamem_compute_pcas.py
